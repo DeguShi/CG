@@ -833,7 +833,7 @@ def clamp(v, vmin, vmax):
 
 char_x = -0.05
 t_stomp = 0.35
-STOMP_MAX = 1.4
+STOMP_MAX = 1.25
 slash_angle = 0.0
 hat_scale = 1.0
 cloud_ctrl_x = -0.68
@@ -1027,11 +1027,11 @@ while not glfw.window_should_close(window):
 
     foot_r_angle = 0.20
     foot_r_core = (ankle_r[0] + 0.020, ankle_r[1] - 0.018)
-    draw_box_oriented((foot_r_core[0] + 0.010, foot_r_core[1] + 0.003), (0.132, 0.015, 0.048), foot_r_angle, (0.02, 0.02, 0.03, 1.0), z=0.10)
-    draw_blob((foot_r_core[0] - 0.038, foot_r_core[1] + 0.015), (0.020, 0.023, 0.038), (0.06, 0.06, 0.08, 1.0), z=0.112)
-    draw_blob((foot_r_core[0] + 0.051, foot_r_core[1] + 0.010), (0.031, 0.016, 0.035), (0.02, 0.02, 0.03, 1.0), z=0.112)
-    draw_box_oriented((foot_r_core[0] - 0.003, foot_r_core[1] + 0.010), (0.103, 0.009, 0.045), foot_r_angle, (0.96, 0.96, 0.98, 1.0), z=0.120)
-    draw_box_oriented((foot_r_core[0] + 0.033, foot_r_core[1] + 0.015), (0.024, 0.004, 0.014), foot_r_angle, (0.86, 0.86, 0.90, 1.0), z=0.123)
+    draw_box_oriented((foot_r_core[0] + 0.024, foot_r_core[1] + 0.003), (0.104, 0.011, 0.048), foot_r_angle, (0.02, 0.02, 0.03, 1.0), z=0.06)
+    draw_blob((foot_r_core[0] - 0.016, foot_r_core[1] + 0.015), (0.020, 0.023, 0.038), (0.06, 0.06, 0.08, 1.0), z=0.07)
+    draw_blob((foot_r_core[0] + 0.051, foot_r_core[1] + 0.010), (0.031, 0.016, 0.035), (0.02, 0.02, 0.03, 1.0), z=0.07)
+    draw_box_oriented((foot_r_core[0] + 0.009, foot_r_core[1] + 0.007), (0.079, 0.009, 0.045), foot_r_angle, (0.96, 0.96, 0.98, 1.0), z=0.075)
+    draw_box_oriented((foot_r_core[0] + 0.033, foot_r_core[1] + 0.013), (0.024, 0.004, 0.014), foot_r_angle, (0.86, 0.86, 0.90, 1.0), z=0.078)
 
     # Left leg (support)
     thigh_len_l = 0.24
@@ -1048,11 +1048,11 @@ while not glfw.window_should_close(window):
 
     foot_l_angle = 0.02
     foot_l_core = (ankle_l[0] + 0.008, GROUND_Y)
-    draw_box_oriented((foot_l_core[0] - 0.024, foot_l_core[1] + 0.003), (0.104, 0.015, 0.048), foot_l_angle, (0.02, 0.02, 0.03, 1.0), z=0.10)
-    draw_blob((foot_l_core[0] + 0.016, foot_l_core[1] + 0.015), (0.020, 0.023, 0.038), (0.06, 0.06, 0.08, 1.0), z=0.112)
-    draw_blob((foot_l_core[0] - 0.051, foot_l_core[1] + 0.010), (0.031, 0.016, 0.035), (0.03, 0.03, 0.04, 1.0), z=0.112)
-    draw_box_oriented((foot_l_core[0] - 0.009, foot_l_core[1] + 0.010), (0.079, 0.009, 0.045), foot_l_angle, (0.94, 0.94, 0.97, 1.0), z=0.120)
-    draw_box_oriented((foot_l_core[0] - 0.033, foot_l_core[1] + 0.015), (0.024, 0.004, 0.014), foot_l_angle, (0.84, 0.84, 0.89, 1.0), z=0.123)
+    draw_box_oriented((foot_l_core[0] - 0.024, foot_l_core[1] + 0.003), (0.104, 0.011, 0.048), foot_l_angle, (0.02, 0.02, 0.03, 1.0), z=0.04)
+    draw_blob((foot_l_core[0] + 0.016, foot_l_core[1] + 0.015), (0.020, 0.023, 0.038), (0.06, 0.06, 0.08, 1.0), z=0.05)
+    draw_blob((foot_l_core[0] - 0.051, foot_l_core[1] + 0.010), (0.031, 0.016, 0.035), (0.03, 0.03, 0.04, 1.0), z=0.05)
+    draw_box_oriented((foot_l_core[0] - 0.009, foot_l_core[1] + 0.007), (0.079, 0.009, 0.045), foot_l_angle, (0.94, 0.94, 0.97, 1.0), z=0.055)
+    draw_box_oriented((foot_l_core[0] - 0.033, foot_l_core[1] + 0.013), (0.024, 0.004, 0.014), foot_l_angle, (0.84, 0.84, 0.89, 1.0), z=0.058)
 
     # ------------------------------------------------------------------------
     # Arms, hands and sword (multi-part)
