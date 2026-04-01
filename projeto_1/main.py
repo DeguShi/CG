@@ -6,7 +6,9 @@ Controles:
 - A / D: translacao horizontal do personagem
 - W / S: intensidade da pisada (stomp)
 - Q / E: movimento de corte do braco com espada
-- Z / X: escala do chapeu no chao
+- Z / X: escala da nuvem controlavel
+- I / K: mover nuvem controlavel (cima/baixo)
+- J / L: mover nuvem controlavel (esquerda/direita)
 - P: wireframe on/off
 - R: reset de estado
 """
@@ -435,6 +437,32 @@ def rz(a):
 # Drawing helpers
 # ============================================================================
 
+char_tf_enabled = False
+char_tf_scale = 1.0
+char_tf_tx = 0.0
+char_tf_ty = 0.0
+char_tf_anchor_x = 0.0
+char_tf_anchor_y = 0.0
+
+
+def set_char_transform(enabled=False, scale=1.0, tx=0.0, ty=0.0, anchor_x=0.0, anchor_y=0.0):
+    global char_tf_enabled, char_tf_scale, char_tf_tx, char_tf_ty, char_tf_anchor_x, char_tf_anchor_y
+    char_tf_enabled = enabled
+    char_tf_scale = scale
+    char_tf_tx = tx
+    char_tf_ty = ty
+    char_tf_anchor_x = anchor_x
+    char_tf_anchor_y = anchor_y
+
+
+def char_tf_point(pt):
+    if not char_tf_enabled:
+        return pt
+
+    x = ((pt[0] - char_tf_anchor_x) * char_tf_scale) + char_tf_anchor_x + char_tf_tx
+    y = ((pt[1] - char_tf_anchor_y) * char_tf_scale) + char_tf_anchor_y + char_tf_ty
+    return (x, y)
+
 
 def set_solid_mode():
     glUniform1i(loc_use_stripes, 0)
@@ -500,6 +528,11 @@ def draw_sphere_striped(nome, mat, limites_x, cores_faixas):
 
 
 def draw_segment(start, end, radius, color, z=0.0):
+    if char_tf_enabled:
+        start = char_tf_point(start)
+        end = char_tf_point(end)
+        radius *= char_tf_scale
+
     dx = end[0] - start[0]
     dy = end[1] - start[1]
     length = math.sqrt(dx * dx + dy * dy)
@@ -518,6 +551,10 @@ def draw_segment(start, end, radius, color, z=0.0):
 
 
 def draw_box_oriented(center, size_xyz, angle_z, color, z=0.0):
+    if char_tf_enabled:
+        center = char_tf_point(center)
+        size_xyz = (size_xyz[0] * char_tf_scale, size_xyz[1] * char_tf_scale, size_xyz[2] * char_tf_scale)
+
     m = mt(center[0], center[1], z)
     m = mm(m, rz(angle_z))
     m = mm(m, ms(size_xyz[0], size_xyz[1], size_xyz[2]))
@@ -525,6 +562,10 @@ def draw_box_oriented(center, size_xyz, angle_z, color, z=0.0):
 
 
 def draw_blob(center, radii_xyz, color, z=0.0):
+    if char_tf_enabled:
+        center = char_tf_point(center)
+        radii_xyz = (radii_xyz[0] * char_tf_scale, radii_xyz[1] * char_tf_scale, radii_xyz[2] * char_tf_scale)
+
     # sphere_foot has radius 0.05 in object space
     m = mt(center[0], center[1], z)
     m = mm(m, ms(radii_xyz[0] / 0.05, radii_xyz[1] / 0.05, radii_xyz[2] / 0.05))
@@ -540,6 +581,19 @@ def draw_mountain_with_snow(base_x, base_y, width, height, body_color, snow_colo
     m_snow = mm(m_snow, ms(snow_scale, snow_scale, 1.0))
     m_snow = mm(m_snow, mt(0.0, -1.0, 0.0))
     draw("mountain", snow_color, m_snow)
+
+
+def draw_cloud_cluster(cx, cy, cloud_scale, z=0.01):
+    puffs = [
+        (-0.12, 0.00, 0.92, 0.64, (0.98, 0.99, 1.00, 1.0)),
+        (0.00, 0.04, 1.10, 0.76, (0.97, 0.98, 1.00, 1.0)),
+        (0.12, 0.01, 0.88, 0.62, (0.96, 0.98, 1.00, 1.0)),
+        (0.00, -0.04, 0.98, 0.68, (0.95, 0.97, 0.99, 1.0)),
+    ]
+
+    for ox, oy, sx, sy, color in puffs:
+        m = mm(mt(cx + ox * cloud_scale, cy + oy * cloud_scale, z), ms(sx * cloud_scale, sy * cloud_scale, 1.0))
+        draw("cloud", color, m)
 
 
 def draw_goal_left(tx, ty, scale, depth_mag):
@@ -705,20 +759,26 @@ char_x = -0.05
 t_stomp = 0.35
 slash_angle = 0.0
 hat_scale = 1.0
+cloud_ctrl_x = -0.68
+cloud_ctrl_y = 0.74
+cloud_ctrl_scale = 0.96
 wireframe = False
 
 
 def reset_state():
-    global char_x, t_stomp, slash_angle, hat_scale, wireframe
+    global char_x, t_stomp, slash_angle, hat_scale, cloud_ctrl_x, cloud_ctrl_y, cloud_ctrl_scale, wireframe
     char_x = -0.05
     t_stomp = 0.35
     slash_angle = 0.0
     hat_scale = 1.0
+    cloud_ctrl_x = -0.68
+    cloud_ctrl_y = 0.74
+    cloud_ctrl_scale = 0.96
     wireframe = False
 
 
 def key_event(_window, key, _scancode, action, _mods):
-    global char_x, t_stomp, slash_angle, hat_scale, wireframe
+    global char_x, t_stomp, slash_angle, hat_scale, cloud_ctrl_x, cloud_ctrl_y, cloud_ctrl_scale, wireframe
 
     if key == glfw.KEY_P and action == glfw.PRESS:
         wireframe = not wireframe
@@ -744,9 +804,17 @@ def key_event(_window, key, _scancode, action, _mods):
     elif key == glfw.KEY_E:
         slash_angle = clamp(slash_angle - 0.08, -0.65, 0.45)
     elif key == glfw.KEY_Z:
-        hat_scale = clamp(hat_scale + 0.05, 0.55, 1.75)
+        cloud_ctrl_scale = clamp(cloud_ctrl_scale + 0.05, 0.55, 1.75)
     elif key == glfw.KEY_X:
-        hat_scale = clamp(hat_scale - 0.05, 0.55, 1.75)
+        cloud_ctrl_scale = clamp(cloud_ctrl_scale - 0.05, 0.55, 1.75)
+    elif key == glfw.KEY_J:
+        cloud_ctrl_x = clamp(cloud_ctrl_x - 0.03, -0.85, 0.80)
+    elif key == glfw.KEY_L:
+        cloud_ctrl_x = clamp(cloud_ctrl_x + 0.03, -0.85, 0.80)
+    elif key == glfw.KEY_I:
+        cloud_ctrl_y = clamp(cloud_ctrl_y + 0.03, 0.52, 0.86)
+    elif key == glfw.KEY_K:
+        cloud_ctrl_y = clamp(cloud_ctrl_y - 0.03, 0.52, 0.86)
 
 
 glfw.set_key_callback(window, key_event)
@@ -775,10 +843,15 @@ SNOW = (0.98, 0.99, 1.00, 1.0)
 
 R_CYL = rx(PI / 2.0)
 GOAL_LEFT_X = -0.74
-GOAL_LEFT_SCALE = 0.44
+GOAL_LEFT_SCALE = 0.48
 GOAL_LEFT_DEPTH = 0.22
 # Align goal back bottom with the white mountain/floor separator line.
 GOAL_LEFT_Y = (GROUND_Y + 0.001) + 0.27 * GOAL_LEFT_SCALE
+
+# Character global transform: slight downscale + vertical alignment to goal post base.
+CHAR_SCENE_SCALE = 0.92
+GOAL_FRONT_POST_BOTTOM_Y = GOAL_LEFT_Y + ((-0.27 - 0.62 * GOAL_LEFT_DEPTH) * GOAL_LEFT_SCALE) - (0.03 * GOAL_LEFT_SCALE)
+CHAR_SCENE_DY = GOAL_FRONT_POST_BOTTOM_Y - GROUND_Y
 
 glfw.show_window(window)
 glEnable(GL_DEPTH_TEST)
@@ -826,17 +899,10 @@ while not glfw.window_should_close(window):
     draw("sun_disk", (1.00, 0.93, 0.35, 1.0), mt(0.73, 0.68, 0.02))
     draw("sun_disk", (1.00, 0.97, 0.58, 1.0), mm(mt(0.73, 0.68, 0.03), ms(0.72, 0.72, 1.0)))
 
-    # Keep clouds away from thrown hat region (left upper-middle)
-    m_cloud_a = mm(mt(-0.90, 0.74), ms(1.10, 0.78, 1.0))
-    m_cloud_b = mm(mt(-0.77, 0.77), ms(0.86, 0.66, 1.0))
-    m_cloud_c = mm(mt(-1.00, 0.77), ms(0.68, 0.55, 1.0))
-    m_cloud_d = mm(mt(0.45, 0.62), ms(0.74, 0.53, 1.0))
-    m_cloud_e = mm(mt(0.58, 0.64), ms(0.55, 0.44, 1.0))
-    draw("cloud", (0.98, 0.99, 1.00, 1.0), m_cloud_a)
-    draw("cloud", (0.97, 0.98, 1.00, 1.0), m_cloud_b)
-    draw("cloud", (0.95, 0.97, 0.99, 1.0), m_cloud_c)
-    draw("cloud", (0.93, 0.95, 0.99, 1.0), m_cloud_d)
-    draw("cloud", (0.90, 0.94, 0.98, 1.0), m_cloud_e)
+    # Layered cloud clusters, with one controllable cloud.
+    draw_cloud_cluster(cloud_ctrl_x, cloud_ctrl_y, cloud_ctrl_scale, z=0.01)
+    draw_cloud_cluster(-0.28, 0.73, 0.80, z=0.01)
+    draw_cloud_cluster(0.50, 0.66, 0.76, z=0.01)
 
     # ------------------------------------------------------------------------
     # Character core
@@ -847,16 +913,23 @@ while not glfw.window_should_close(window):
 
     body_x = char_x
     body_y = 0.217 - 0.020 * t_stomp
+    set_char_transform(True, CHAR_SCENE_SCALE, 0.0, CHAR_SCENE_DY, body_x, GROUND_Y)
 
-    m_shadow = mm(mt(body_x + 0.03, GROUND_Y + 0.004, 0.72), ms(1.18, 0.17, 1.0))
+    body_center = char_tf_point((body_x, body_y))
+    shadow_center = char_tf_point((body_x + 0.03, GROUND_Y + 0.004))
+
+    m_shadow = mm(mt(shadow_center[0], shadow_center[1], 0.72), ms(1.18 * char_tf_scale, 0.17 * char_tf_scale, 1.0))
     draw("shadow", (0.16, 0.16, 0.21, 1.0), m_shadow)
 
-    m_body = mt(body_x, body_y, 0.0)
+    m_body = mm(mt(body_center[0], body_center[1], 0.0), ms(char_tf_scale, char_tf_scale, 1.0))
     draw_sphere_striped("sphere_body", m_body, [-0.26 / 3.0, 0.26 / 3.0], [BLUE, BLACK, WHITE])
 
-    draw("star", (0.60, 0.42, 0.20, 1.0), mt(body_x - 0.068, body_y + 0.332, 0.0))
-    draw("star", (0.75, 0.75, 0.82, 1.0), mt(body_x, body_y + 0.362, 0.0))
-    draw("star", (1.00, 0.86, 0.05, 1.0), mt(body_x + 0.068, body_y + 0.332, 0.0))
+    star_l = char_tf_point((body_x - 0.068, body_y + 0.332))
+    star_c = char_tf_point((body_x, body_y + 0.362))
+    star_r = char_tf_point((body_x + 0.068, body_y + 0.332))
+    draw("star", (0.60, 0.42, 0.20, 1.0), mm(mt(star_l[0], star_l[1], 0.0), ms(char_tf_scale, char_tf_scale, 1.0)))
+    draw("star", (0.75, 0.75, 0.82, 1.0), mm(mt(star_c[0], star_c[1], 0.0), ms(char_tf_scale, char_tf_scale, 1.0)))
+    draw("star", (1.00, 0.86, 0.05, 1.0), mm(mt(star_r[0], star_r[1], 0.0), ms(char_tf_scale, char_tf_scale, 1.0)))
 
     # ------------------------------------------------------------------------
     # Legs and boots (multi-part segmented)
@@ -873,7 +946,7 @@ while not glfw.window_should_close(window):
     draw_segment(hip_r, knee_r, 0.030, (0.04, 0.04, 0.05, 1.0), z=0.04)
     draw_blob(knee_r, (0.022, 0.022, 0.026), (0.90, 0.90, 0.95, 1.0), z=0.05)
     draw_segment(knee_r, ankle_r, 0.024, (0.97, 0.97, 0.99, 1.0), z=0.04)
-    draw_segment((ankle_r[0], ankle_r[1] + 0.008), (ankle_r[0], ankle_r[1] - 0.010), 0.020, (0.04, 0.04, 0.05, 1.0), z=0.05)
+    draw_segment((ankle_r[0], ankle_r[1] + 0.006), (ankle_r[0], ankle_r[1] - 0.006), 0.010, (0.04, 0.04, 0.05, 1.0), z=0.05)
 
     foot_r_angle = 0.20
     foot_r_core = (ankle_r[0] + 0.020, ankle_r[1] - 0.018)
@@ -894,15 +967,15 @@ while not glfw.window_should_close(window):
     draw_segment(hip_l, knee_l, 0.030, (0.04, 0.04, 0.05, 1.0), z=0.02)
     draw_blob(knee_l, (0.022, 0.022, 0.026), (0.92, 0.92, 0.96, 1.0), z=0.03)
     draw_segment(knee_l, ankle_l, 0.024, (0.97, 0.97, 0.99, 1.0), z=0.02)
-    draw_segment((ankle_l[0], ankle_l[1] + 0.008), (ankle_l[0], ankle_l[1] - 0.010), 0.020, (0.04, 0.04, 0.05, 1.0), z=0.03)
+    draw_segment((ankle_l[0], ankle_l[1] + 0.006), (ankle_l[0], ankle_l[1] - 0.006), 0.010, (0.04, 0.04, 0.05, 1.0), z=0.03)
 
-    foot_l_angle = -0.02
-    foot_l_core = (ankle_l[0] - 0.008, GROUND_Y)
+    foot_l_angle = 0.02
+    foot_l_core = (ankle_l[0] + 0.008, GROUND_Y)
     draw_box_oriented(foot_l_core, (0.132, 0.019, 0.055), foot_l_angle, (0.02, 0.02, 0.03, 1.0), z=0.04)
-    draw_blob((foot_l_core[0] - 0.015, foot_l_core[1] + 0.022), (0.062, 0.029, 0.060), (0.06, 0.06, 0.08, 1.0), z=0.05)
-    draw_blob((foot_l_core[0] + 0.062, foot_l_core[1] + 0.010), (0.031, 0.019, 0.035), (0.03, 0.03, 0.04, 1.0), z=0.05)
-    draw_box_oriented((foot_l_core[0] - 0.006, foot_l_core[1] + 0.009), (0.086, 0.010, 0.040), foot_l_angle, (0.94, 0.94, 0.97, 1.0), z=0.055)
-    draw_box_oriented((foot_l_core[0] + 0.042, foot_l_core[1] + 0.018), (0.030, 0.004, 0.018), foot_l_angle, (0.84, 0.84, 0.89, 1.0), z=0.058)
+    draw_blob((foot_l_core[0] + 0.015, foot_l_core[1] + 0.022), (0.062, 0.029, 0.060), (0.06, 0.06, 0.08, 1.0), z=0.05)
+    draw_blob((foot_l_core[0] - 0.062, foot_l_core[1] + 0.010), (0.031, 0.019, 0.035), (0.03, 0.03, 0.04, 1.0), z=0.05)
+    draw_box_oriented((foot_l_core[0] + 0.006, foot_l_core[1] + 0.009), (0.086, 0.010, 0.040), foot_l_angle, (0.94, 0.94, 0.97, 1.0), z=0.055)
+    draw_box_oriented((foot_l_core[0] - 0.042, foot_l_core[1] + 0.018), (0.030, 0.004, 0.018), foot_l_angle, (0.84, 0.84, 0.89, 1.0), z=0.058)
 
     # ------------------------------------------------------------------------
     # Arms, hands and sword (multi-part)
@@ -975,17 +1048,20 @@ while not glfw.window_should_close(window):
     grip_end = (hand_r[0] + sword_dir[0] * 0.090, hand_r[1] + sword_dir[1] * 0.090)
     guard_center = (hand_r[0] + sword_dir[0] * 0.090, hand_r[1] + sword_dir[1] * 0.090)
     blade_start = (hand_r[0] + sword_dir[0] * 0.118, hand_r[1] + sword_dir[1] * 0.118)
-    blade_mid = (hand_r[0] + sword_dir[0] * 0.355, hand_r[1] + sword_dir[1] * 0.355)
-    blade_tip = (hand_r[0] + sword_dir[0] * 0.402, hand_r[1] + sword_dir[1] * 0.402)
+    blade_mid_0 = (hand_r[0] + sword_dir[0] * 0.300, hand_r[1] + sword_dir[1] * 0.300)
+    blade_mid_1 = (hand_r[0] + sword_dir[0] * 0.368, hand_r[1] + sword_dir[1] * 0.368)
+    blade_mid_2 = (hand_r[0] + sword_dir[0] * 0.418, hand_r[1] + sword_dir[1] * 0.418)
+    blade_tip = (hand_r[0] + sword_dir[0] * 0.462, hand_r[1] + sword_dir[1] * 0.462)
 
     draw_blob(pommel, (0.014, 0.014, 0.016), (0.55, 0.50, 0.22, 1.0), z=0.13)
     draw_segment(grip_start, grip_end, 0.014, (0.32, 0.22, 0.12, 1.0), z=0.12)
     draw_box_oriented(guard_center, (0.072, 0.012, 0.020), sword_a + PI / 2.0, (0.72, 0.72, 0.78, 1.0), z=0.14)
     draw_segment((blade_start[0] - sword_dir[0] * 0.020, blade_start[1] - sword_dir[1] * 0.020), blade_start, 0.011, (0.50, 0.50, 0.56, 1.0), z=0.125)
-    draw_segment(blade_start, blade_mid, 0.010, (0.84, 0.85, 0.91, 1.0), z=0.125)
-    draw_segment(blade_mid, blade_tip, 0.006, (0.94, 0.95, 0.98, 1.0), z=0.125)
-    draw_segment((blade_start[0] + sword_dir[0] * 0.010, blade_start[1] + sword_dir[1] * 0.010), (blade_mid[0] - sword_dir[0] * 0.015, blade_mid[1] - sword_dir[1] * 0.015), 0.003, (0.67, 0.69, 0.77, 1.0), z=0.128)
-    draw_box_oriented((blade_tip[0] + sword_dir[0] * 0.007, blade_tip[1] + sword_dir[1] * 0.007), (0.012, 0.004, 0.010), sword_a, (0.95, 0.95, 0.99, 1.0), z=0.126)
+    draw_segment(blade_start, blade_mid_0, 0.0102, (0.84, 0.85, 0.91, 1.0), z=0.125)
+    draw_segment(blade_mid_0, blade_mid_1, 0.0082, (0.89, 0.90, 0.95, 1.0), z=0.125)
+    draw_segment(blade_mid_1, blade_mid_2, 0.0058, (0.93, 0.94, 0.98, 1.0), z=0.125)
+    draw_segment(blade_mid_2, blade_tip, 0.0030, (0.96, 0.97, 1.00, 1.0), z=0.125)
+    draw_segment((blade_start[0] + sword_dir[0] * 0.010, blade_start[1] + sword_dir[1] * 0.010), (blade_mid_2[0] - sword_dir[0] * 0.014, blade_mid_2[1] - sword_dir[1] * 0.014), 0.0023, (0.67, 0.69, 0.77, 1.0), z=0.128)
     draw_box_oriented((guard_center[0] + sword_perp[0] * 0.003, guard_center[1] + sword_perp[1] * 0.003), (0.030, 0.004, 0.008), sword_a, (0.58, 0.58, 0.62, 1.0), z=0.145)
 
     # ------------------------------------------------------------------------
@@ -997,10 +1073,16 @@ while not glfw.window_should_close(window):
     inter_x = ankle_r[0] + 0.012
     inter_y = GROUND_Y + 0.08 * inter_sy - 0.015
 
-    m_i_shadow = mm(mt(inter_x, GROUND_Y + 0.002, 0.73), ms(0.62 * inter_sx, 0.10, 1.0))
+    inter_center = char_tf_point((inter_x, inter_y))
+    inter_shadow_center = char_tf_point((inter_x, GROUND_Y + 0.002))
+
+    m_i_shadow = mm(
+        mt(inter_shadow_center[0], inter_shadow_center[1], 0.73),
+        ms(0.62 * inter_sx * char_tf_scale, 0.10 * char_tf_scale, 1.0),
+    )
     draw("shadow", (0.16, 0.16, 0.21, 1.0), m_i_shadow)
 
-    m_inter = mm(mt(inter_x, inter_y, 0.0), ms(inter_sx, inter_sy, 1.0))
+    m_inter = mm(mt(inter_center[0], inter_center[1], 0.0), ms(inter_sx * char_tf_scale, inter_sy * char_tf_scale, 1.0))
     draw_sphere_striped("sphere_inter", m_inter, [0.0], [RED, WHITE])
 
     # ------------------------------------------------------------------------
@@ -1009,26 +1091,31 @@ while not glfw.window_should_close(window):
 
     hat_anchor_x = palm_l[0] - 0.012
     hat_anchor_y = palm_l[1] + 0.160
+    hat_anchor_tf = char_tf_point((hat_anchor_x, hat_anchor_y))
+    hat_scene_scale = hat_scale * char_tf_scale
     hat_tilt = -0.62
 
-    m_hat_brim = mt(hat_anchor_x, hat_anchor_y, -0.10)
+    m_hat_brim = mt(hat_anchor_tf[0], hat_anchor_tf[1], -0.10)
     m_hat_brim = mm(m_hat_brim, rz(hat_tilt))
-    m_hat_brim = mm(m_hat_brim, ms((0.095 * hat_scale) / 0.05, (0.028 * hat_scale) / 0.05, (0.070 * hat_scale) / 0.05))
+    m_hat_brim = mm(m_hat_brim, ms((0.095 * hat_scene_scale) / 0.05, (0.028 * hat_scene_scale) / 0.05, (0.070 * hat_scene_scale) / 0.05))
     draw("sphere_foot", (0.08, 0.08, 0.10, 1.0), m_hat_brim)
 
-    m_hat_crown = mt(hat_anchor_x + 0.004, hat_anchor_y + 0.042 * hat_scale, -0.095)
+    m_hat_crown = mt(hat_anchor_tf[0], hat_anchor_tf[1], -0.095)
     m_hat_crown = mm(m_hat_crown, rz(hat_tilt))
+    m_hat_crown = mm(m_hat_crown, mt(0.0, 0.042 * hat_scene_scale, 0.0))
     m_hat_crown = mm(m_hat_crown, R_CYL)
-    m_hat_crown = mm(m_hat_crown, ms(0.038 * hat_scale, 0.038 * hat_scale, 0.100 * hat_scale))
+    m_hat_crown = mm(m_hat_crown, ms(0.038 * hat_scene_scale, 0.038 * hat_scene_scale, 0.100 * hat_scene_scale))
     draw("unit_cyl", (0.10, 0.10, 0.12, 1.0), m_hat_crown)
 
-    m_hat_band = mt(hat_anchor_x + 0.003, hat_anchor_y + 0.020 * hat_scale, -0.090)
+    m_hat_band = mt(hat_anchor_tf[0], hat_anchor_tf[1], -0.090)
     m_hat_band = mm(m_hat_band, rz(hat_tilt))
+    m_hat_band = mm(m_hat_band, mt(0.0, 0.020 * hat_scene_scale, 0.0))
     m_hat_band = mm(m_hat_band, R_CYL)
-    m_hat_band = mm(m_hat_band, ms(0.043 * hat_scale, 0.043 * hat_scale, 0.012 * hat_scale))
+    m_hat_band = mm(m_hat_band, ms(0.043 * hat_scene_scale, 0.043 * hat_scene_scale, 0.012 * hat_scene_scale))
     draw("unit_cyl", (0.78, 0.74, 0.16, 1.0), m_hat_band)
 
     draw_box_oriented((hat_anchor_x - 0.045, hat_anchor_y + 0.016), (0.022 * hat_scale, 0.006 * hat_scale, 0.010 * hat_scale), hat_tilt - 0.8, (0.78, 0.74, 0.16, 1.0), z=-0.085)
+    set_char_transform(False)
 
     glfw.swap_buffers(window)
 
