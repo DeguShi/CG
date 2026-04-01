@@ -105,7 +105,7 @@ if not glGetProgramiv(program, GL_LINK_STATUS):
 glUseProgram(program)
 
 # ============================================================================
-# Geometry generators
+# Geradores de geometria
 # ============================================================================
 
 
@@ -178,7 +178,7 @@ def gerar_cone(raio_base, altura, num_sectors, num_stacks):
 
     verts = []
 
-    # Lateral surface (stacked frustum strips).
+    # Superfície lateral (faixas de troncos de cone empilhadas).
     for j in range(num_stacks):
         t0 = j / float(num_stacks)
         t1 = (j + 1) / float(num_stacks)
@@ -197,7 +197,7 @@ def gerar_cone(raio_base, altura, num_sectors, num_stacks):
             p3 = c(un, z1, r1)
             verts += [p0, p1, p2, p1, p3, p2]
 
-    # Base cap.
+    # Tampa da base.
     for i in range(num_sectors):
         u = i * sector_step
         un = (i + 1) * sector_step if (i + 1) < num_sectors else (PI * 2.0)
@@ -258,7 +258,7 @@ def gerar_estrela(r_outer, r_inner, pontas=5):
 
 
 # ============================================================================
-# Object registry
+# Registro de objetos
 # ============================================================================
 
 objetos = {}
@@ -287,7 +287,7 @@ reg("cloud", gerar_circulo(0.09, 30), "F")
 reg("sun_disk", gerar_circulo(0.095, 44), "F")
 
 # ============================================================================
-# Upload to GPU
+# Envio para a GPU
 # ============================================================================
 
 vertices = np.zeros(len(todos_vertices), [("position", np.float32, 3)])
@@ -315,7 +315,7 @@ loc_stripe_color_1 = glGetUniformLocation(program, "stripe_color_1")
 loc_stripe_color_2 = glGetUniformLocation(program, "stripe_color_2")
 
 # ============================================================================
-# Matrix helpers
+# Auxiliares de matriz
 # ============================================================================
 
 
@@ -364,7 +364,7 @@ def rz(a):
 
 
 # ============================================================================
-# Drawing helpers
+# Auxiliares de desenho
 # ============================================================================
 
 char_tf_enabled = False
@@ -519,7 +519,7 @@ def draw_blob(center, radii_xyz, color, z=0.0):
         center = char_tf_point(center)
         radii_xyz = (radii_xyz[0] * char_tf_scale, radii_xyz[1] * char_tf_scale, radii_xyz[2] * char_tf_scale)
 
-    # sphere_foot has radius 0.05 in object space
+    # sphere_foot tem raio 0.05 no espaço do objeto.
     m = mt(center[0], center[1], z)
     m = mm(m, ms(radii_xyz[0] / 0.05, radii_xyz[1] / 0.05, radii_xyz[2] / 0.05))
     draw("sphere_foot", color, m)
@@ -531,7 +531,7 @@ def draw_mountain_with_snow(base_x, base_y, width, height, body_color, snow_colo
     apex = (base_x, base_y + height)
     draw_cone_segment(base, apex, half_w, body_color, z=0.01)
 
-    # Snow cap as a smaller cone attached near the peak.
+    # Neve no topo como cone menor próximo ao pico.
     snow_base = (base_x, base_y + height * (1.0 - snow_scale))
     draw_cone_segment(snow_base, apex, half_w * snow_scale, snow_color, z=0.02)
 
@@ -614,7 +614,7 @@ def draw_goal_left(tx, ty, scale, depth_mag):
     f_bl = transform_pt(far_bl)
     f_br = transform_pt(far_br)
 
-    # Back frame reduced to bottom bar only (approved goal shape).
+    # Estrutura traseira reduzida à barra inferior (formato aprovado do gol).
     draw_segment(f_bl, f_br, r_back, frame_back, z=z_far)
 
     top_attach_l = lerp2(near_tl, far_tl, 0.55)
@@ -712,7 +712,7 @@ def solve_ik_knee(hip, ankle, l_thigh, l_shin, bend_sign):
 
 
 # ============================================================================
-# Scene state and controls
+# Estado da cena e controles
 # ============================================================================
 
 
@@ -784,7 +784,7 @@ def key_event(_window, key, _scancode, action, _mods):
 glfw.set_key_callback(window, key_event)
 
 # ============================================================================
-# Main loop
+# Loop principal
 # ============================================================================
 
 GROUND_Y = -0.44
@@ -809,10 +809,10 @@ R_CYL = rx(PI / 2.0)
 GOAL_LEFT_X = -0.74
 GOAL_LEFT_SCALE = 0.48
 GOAL_LEFT_DEPTH = 0.22
-# Align goal back bottom with the white mountain/floor separator line.
+# Alinha a base traseira do gol com a linha branca de separação montanha/chão.
 GOAL_LEFT_Y = (GROUND_Y + 0.001) + 0.27 * GOAL_LEFT_SCALE
 
-# Character global transform: slight downscale + vertical alignment to goal post base.
+# Transformação global do personagem: pequena redução + alinhamento vertical.
 CHAR_SCENE_SCALE = 0.92
 GOAL_FRONT_POST_BOTTOM_Y = GOAL_LEFT_Y + ((-0.27 - 0.62 * GOAL_LEFT_DEPTH) * GOAL_LEFT_SCALE) - (0.03 * GOAL_LEFT_SCALE)
 CHAR_SCENE_DY = GOAL_FRONT_POST_BOTTOM_Y - GROUND_Y
@@ -834,22 +834,22 @@ while not glfw.window_should_close(window):
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
     # ------------------------------------------------------------------------
-    # Background (medium detail)
+    # Fundo (detalhamento médio)
     # ------------------------------------------------------------------------
 
     glDisable(GL_DEPTH_TEST)
     glDepthMask(GL_FALSE)
 
-    # Far ground layer behind mountains
+    # Camada de chão ao fundo, atrás das montanhas.
     m_far = mm(mt(0.0, GROUND_Y - 0.06), ms(1.10, 0.40, 1.0))
     draw("ground", GROUND_FAR, m_far)
 
-    # Triangular mountain ranges with attached snow caps
+    # Faixas de montanhas triangulares com neve no topo.
     draw_mountain_with_snow(-0.79, GROUND_Y - 0.10, 1.20, 0.68, MOUNTAIN_L, SNOW, 0.31)
     draw_mountain_with_snow(0.80, GROUND_Y - 0.10, 1.24, 0.66, MOUNTAIN_R, SNOW, 0.31)
     draw_mountain_with_snow(-0.08, GROUND_Y - 0.10, 0.82, 0.46, MOUNTAIN_C, SNOW, 0.34)
 
-    # Main floor plane (top edge aligned with GROUND_Y) + foreground strip
+    # Plano principal do chão (borda superior em GROUND_Y) + faixa frontal.
     m_main = mm(mt(0.0, GROUND_Y - 0.31), ms(1.12, 1.00, 1.0))
     draw("ground", GROUND_MAIN, m_main)
     draw("ground_line", GROUND_LINE, mt(0.0, GROUND_Y + 0.001))
@@ -858,18 +858,18 @@ while not glfw.window_should_close(window):
     m_front = mm(mt(0.0, -0.90), ms(1.16, 0.34, 1.0))
     draw("ground", GROUND_FRONT, m_front)
 
-    # Sun (day scene) with cone rays.
+    # Sol (cena diurna) com raios em cone.
     draw_sun_rays_cone(0.73, 0.68, 0.11, 0.18, 12, (1.00, 0.83, 0.25, 1.0), z=0.01)
     draw("sun_disk", (1.00, 0.93, 0.35, 1.0), mt(0.73, 0.68, 0.02))
     draw("sun_disk", (1.00, 0.97, 0.58, 1.0), mm(mt(0.73, 0.68, 0.03), ms(0.72, 0.72, 1.0)))
 
-    # Layered cloud clusters, with one controllable cloud.
+    # Conjuntos de nuvens em camadas, com uma nuvem controlável.
     draw_cloud_cluster(cloud_ctrl_x, cloud_ctrl_y, cloud_ctrl_scale, z=0.01)
     draw_cloud_cluster(-0.28, 0.73, 0.80, z=0.01)
     draw_cloud_cluster(0.50, 0.66, 0.76, z=0.01)
 
     # ------------------------------------------------------------------------
-    # Character core
+    # Núcleo do personagem
     # ------------------------------------------------------------------------
 
     glDepthMask(GL_TRUE)
@@ -896,10 +896,10 @@ while not glfw.window_should_close(window):
     draw("star", (1.00, 0.86, 0.05, 1.0), mm(mt(star_r[0], star_r[1], 0.0), ms(char_tf_scale, char_tf_scale, 1.0)))
 
     # ------------------------------------------------------------------------
-    # Legs and boots (multi-part segmented)
+    # Pernas e chuteiras (composição segmentada)
     # ------------------------------------------------------------------------
 
-    # Right leg (stomping) with constrained bend direction
+    # Perna direita (pisando), com direção de dobra restringida.
     thigh_len_r = 0.23
     shin_len_r = 0.20
     hip_r = (body_x + 0.10, body_y - 0.16 - 0.028 * t_stomp)
@@ -920,7 +920,7 @@ while not glfw.window_should_close(window):
     draw_box_oriented((foot_r_core[0] - 0.003, foot_r_core[1] + 0.010), (0.103, 0.009, 0.045), foot_r_angle, (0.96, 0.96, 0.98, 1.0), z=0.120)
     draw_box_oriented((foot_r_core[0] + 0.033, foot_r_core[1] + 0.015), (0.024, 0.004, 0.014), foot_r_angle, (0.86, 0.86, 0.90, 1.0), z=0.123)
 
-    # Left leg (support)
+    # Perna esquerda (apoio)
     thigh_len_l = 0.24
     shin_len_l = 0.22
     hip_l = (body_x - 0.11, body_y - 0.18)
@@ -942,7 +942,7 @@ while not glfw.window_should_close(window):
     draw_box_oriented((foot_l_core[0] - 0.033, foot_l_core[1] + 0.015), (0.024, 0.004, 0.014), foot_l_angle, (0.84, 0.84, 0.89, 1.0), z=0.123)
 
     # ------------------------------------------------------------------------
-    # Arms, hands and sword (multi-part)
+    # Braços, mãos e espada (composição segmentada)
     # ------------------------------------------------------------------------
 
     shoulder_r = (body_x + 0.215, body_y + 0.050)
@@ -950,7 +950,7 @@ while not glfw.window_should_close(window):
     upper_len = 0.13
     fore_len = 0.14
 
-    # Right arm with slash control
+    # Braço direito com controle do golpe.
     upper_a_r = 1.35 + slash_angle * 0.85
     fore_a_r = 1.95 + slash_angle * 1.10
     elbow_r = (
@@ -975,9 +975,10 @@ while not glfw.window_should_close(window):
     thumb_r = (palm_r[0] + perp_r[0] * 0.016, palm_r[1] + perp_r[1] * 0.016)
     draw_box_oriented(thumb_r, (0.018, 0.009, 0.020), fore_a_r + 0.55, SKIN, z=0.12)
 
-    # Left arm (empty hand)
+    # Braço esquerdo (mão livre)
     upper_a_l = -2.35
-    fore_a_l = -2.05
+    # Dobra espelhada em relação ao braço superior.
+    fore_a_l = -2.65
     elbow_l = (
         shoulder_l[0] + math.sin(upper_a_l) * upper_len,
         shoulder_l[1] - math.cos(upper_a_l) * upper_len,
@@ -1002,7 +1003,7 @@ while not glfw.window_should_close(window):
         finger_c = (palm_l[0] + perp_l[0] * off + dir_l[0] * 0.020, palm_l[1] + perp_l[1] * off + dir_l[1] * 0.020)
         draw_box_oriented(finger_c, (0.016, 0.006, 0.016), fore_a_l + 0.05, SKIN, z=0.10)
 
-    # Sword attached to right hand
+    # Espada acoplada à mão direita.
     sword_a = fore_a_r - 0.10
     sword_dir = (math.sin(sword_a), -math.cos(sword_a))
     sword_perp = (-sword_dir[1], sword_dir[0])
@@ -1029,7 +1030,7 @@ while not glfw.window_should_close(window):
     draw_box_oriented((guard_center[0] + sword_perp[0] * 0.003, guard_center[1] + sword_perp[1] * 0.003), (0.030, 0.004, 0.008), sword_a, (0.58, 0.58, 0.62, 1.0), z=0.145)
 
     # ------------------------------------------------------------------------
-    # Inter ball with squash (kept)
+    # Bola do Inter com squash (mantido).
     # ------------------------------------------------------------------------
 
     inter_sx = 1.0 + 0.30 * t_stomp
@@ -1049,7 +1050,7 @@ while not glfw.window_should_close(window):
     m_inter = mm(mt(inter_center[0], inter_center[1], 0.0), ms(inter_sx * char_tf_scale, inter_sy * char_tf_scale, 1.0))
     draw_sphere_striped("sphere_inter", m_inter, [0.0], [RED, WHITE])
 
-    # Mini limbs for Inter ball (simple, squash-aware).
+    # Mini membros da bola do Inter (simples, respeitando squash).
     def inter_local(ox, oy):
         return (inter_x + ox * inter_sx, inter_y + oy * inter_sy)
 
@@ -1080,7 +1081,7 @@ while not glfw.window_should_close(window):
     draw_blob(leg_r_b, (foot_r * 1.10, foot_r * 0.62, foot_r), inter_limb_col, z=0.012)
 
     # ------------------------------------------------------------------------
-    # Hat in throw pose above empty hand (left hand)
+    # Chapéu em pose de arremesso acima da mão esquerda.
     # ------------------------------------------------------------------------
 
     hat_anchor_x = palm_l[0] - 0.012
