@@ -1161,6 +1161,36 @@ while not glfw.window_should_close(window):
     m_inter = mm(mt(inter_center[0], inter_center[1], 0.0), ms(inter_sx * char_tf_scale, inter_sy * char_tf_scale, 1.0))
     draw_sphere_striped("sphere_inter", m_inter, [0.0], [RED, WHITE])
 
+    # Mini limbs for Inter ball (simple, squash-aware).
+    def inter_local(ox, oy):
+        return (inter_x + ox * inter_sx, inter_y + oy * inter_sy)
+
+    inter_limb_col = (0.06, 0.06, 0.07, 1.0)
+    inter_limb_scale = 0.5 * (inter_sx + inter_sy)
+    limb_r = 0.0055 * inter_limb_scale
+    hand_r = 0.0080 * inter_limb_scale
+    foot_r = 0.0090 * inter_limb_scale
+
+    arm_l_a = inter_local(-0.058, 0.018)
+    arm_l_b = inter_local(-0.094, 0.003)
+    arm_r_a = inter_local(0.058, 0.018)
+    arm_r_b = inter_local(0.094, 0.003)
+
+    leg_l_a = inter_local(-0.026, -0.054)
+    leg_l_b = inter_local(-0.044, -0.090)
+    leg_r_a = inter_local(0.026, -0.054)
+    leg_r_b = inter_local(0.044, -0.090)
+
+    draw_segment(arm_l_a, arm_l_b, limb_r, inter_limb_col, z=0.012)
+    draw_segment(arm_r_a, arm_r_b, limb_r, inter_limb_col, z=0.012)
+    draw_segment(leg_l_a, leg_l_b, limb_r * 1.1, inter_limb_col, z=0.010)
+    draw_segment(leg_r_a, leg_r_b, limb_r * 1.1, inter_limb_col, z=0.010)
+
+    draw_blob(arm_l_b, (hand_r * 0.95, hand_r * 0.85, hand_r), inter_limb_col, z=0.014)
+    draw_blob(arm_r_b, (hand_r * 0.95, hand_r * 0.85, hand_r), inter_limb_col, z=0.014)
+    draw_blob(leg_l_b, (foot_r * 1.10, foot_r * 0.62, foot_r), inter_limb_col, z=0.012)
+    draw_blob(leg_r_b, (foot_r * 1.10, foot_r * 0.62, foot_r), inter_limb_col, z=0.012)
+
     # ------------------------------------------------------------------------
     # Hat in throw pose above empty hand (left hand)
     # ------------------------------------------------------------------------
