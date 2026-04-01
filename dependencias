@@ -1,0 +1,4 @@
+Instalar dependências: 
+OPENGL: !pip install pyopengl
+GLFW: !pip install glfw
+GLM (usaremos em aulas futuras): !pip install pyglm
