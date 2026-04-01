@@ -257,101 +257,6 @@ def gerar_estrela(r_outer, r_inner, pontas=5):
     return verts
 
 
-def gerar_triangulo(base, altura):
-    hb = base / 2.0
-    return [(-hb, 0.0, 0.0), (hb, 0.0, 0.0), (0.0, altura, 0.0)]
-
-
-def gerar_raios_sol(r_inner, r_outer, n):
-    verts = []
-    for i in range(n):
-        a = i * 2.0 * PI / n
-        ap = a - (PI / n) * 0.42
-        an = a + (PI / n) * 0.42
-        verts += [
-            (math.cos(ap) * r_inner, math.sin(ap) * r_inner, 0.0),
-            (math.cos(an) * r_inner, math.sin(an) * r_inner, 0.0),
-            (math.cos(a) * r_outer, math.sin(a) * r_outer, 0.0),
-        ]
-    return verts
-
-
-def gerar_crescente(r_outer, r_inner, off_x, off_y, n=64):
-    def arc_points(cx, cy, r, a0, a1, samples):
-        if a1 < a0:
-            a1 += 2.0 * PI
-        pts = []
-        for i in range(samples):
-            t = i / float(samples - 1)
-            a = a0 + (a1 - a0) * t
-            pts.append((cx + math.cos(a) * r, cy + math.sin(a) * r, 0.0))
-        return pts
-
-    def midpoint_angle(a0, a1):
-        if a1 < a0:
-            a1 += 2.0 * PI
-        return 0.5 * (a0 + a1)
-
-    d = math.sqrt(off_x * off_x + off_y * off_y)
-    if d < 1e-6:
-        return []
-
-    if d >= (r_outer + r_inner) or d <= abs(r_outer - r_inner):
-        # Fallback strip if circles are not in intersecting crescent configuration.
-        start = 1.20 * PI
-        end = 2.05 * PI
-        outer = arc_points(0.0, 0.0, r_outer, start, end, n)
-        inner = arc_points(off_x, off_y, r_inner, start, end, n)
-        verts = []
-        for i in range(n - 1):
-            o0, o1 = outer[i], outer[i + 1]
-            i0, i1 = inner[i], inner[i + 1]
-            verts += [o0, o1, i0, o1, i1, i0]
-        return verts
-
-    a = (r_outer * r_outer - r_inner * r_inner + d * d) / (2.0 * d)
-    h2 = max(r_outer * r_outer - a * a, 0.0)
-    h = math.sqrt(h2)
-    ux, uy = off_x / d, off_y / d
-    mx, my = ux * a, uy * a
-
-    ix1, iy1 = mx - uy * h, my + ux * h
-    ix2, iy2 = mx + uy * h, my - ux * h
-
-    ao1 = math.atan2(iy1, ix1)
-    ao2 = math.atan2(iy2, ix2)
-    ai1 = math.atan2(iy1 - off_y, ix1 - off_x)
-    ai2 = math.atan2(iy2 - off_y, ix2 - off_x)
-
-    m12 = midpoint_angle(ao1, ao2)
-    pmx, pmy = math.cos(m12) * r_outer, math.sin(m12) * r_outer
-    is_outside_inner = ((pmx - off_x) * (pmx - off_x) + (pmy - off_y) * (pmy - off_y)) >= (r_inner * r_inner)
-
-    if is_outside_inner:
-        o_start, o_end = ao1, ao2
-        i_start, i_end = ai1, ai2
-    else:
-        o_start, o_end = ao2, ao1
-        i_start, i_end = ai2, ai1
-
-    outer_arc = arc_points(0.0, 0.0, r_outer, o_start, o_end, n)
-    inner_arc_a = arc_points(off_x, off_y, r_inner, i_start, i_end, n)
-    mid_in = inner_arc_a[n // 2]
-    inside_outer_a = (mid_in[0] * mid_in[0] + mid_in[1] * mid_in[1]) <= (r_outer * r_outer)
-
-    if inside_outer_a:
-        inner_arc = inner_arc_a
-    else:
-        inner_arc = list(reversed(arc_points(off_x, off_y, r_inner, i_end, i_start, n)))
-
-    verts = []
-    for i in range(n - 1):
-        o0, o1 = outer_arc[i], outer_arc[i + 1]
-        i0, i1 = inner_arc[i], inner_arc[i + 1]
-        verts += [o0, o1, i0, o1, i1, i0]
-    return verts
-
-
 # ============================================================================
 # Object registry
 # ============================================================================
@@ -378,13 +283,8 @@ reg("shadow", gerar_circulo(0.22, 40), "F")
 
 reg("ground", gerar_retangulo(2.50, 0.62), "S")
 reg("ground_line", gerar_retangulo(2.50, 0.008), "S")
-reg("mist", gerar_retangulo(2.30, 0.08), "S")
-reg("mountain", gerar_triangulo(1.00, 1.00), "T")
-reg("moon", gerar_circulo(0.11, 40), "F")
 reg("cloud", gerar_circulo(0.09, 30), "F")
 reg("sun_disk", gerar_circulo(0.095, 44), "F")
-reg("sun_rays", gerar_raios_sol(0.11, 0.18, 12), "T")
-reg("crescent", gerar_crescente(0.245, 0.220, -0.070, 0.105, 68), "T")
 
 # ============================================================================
 # Upload to GPU
@@ -448,17 +348,6 @@ def rx(a):
         1, 0, 0, 0,
         0, c, -s, 0,
         0, s, c, 0,
-        0, 0, 0, 1,
-    ], np.float32)
-
-
-def ry(a):
-    c = math.cos(a)
-    s = math.sin(a)
-    return np.array([
-        c, 0, s, 0,
-        0, 1, 0, 0,
-        -s, 0, c, 0,
         0, 0, 0, 1,
     ], np.float32)
 
@@ -835,7 +724,6 @@ char_x = -0.05
 t_stomp = 0.35
 STOMP_MAX = 1.4
 slash_angle = 0.0
-hat_scale = 1.0
 cloud_ctrl_x = -0.68
 cloud_ctrl_y = 0.74
 cloud_ctrl_scale = 0.96
@@ -843,11 +731,10 @@ wireframe = False
 
 
 def reset_state():
-    global char_x, t_stomp, slash_angle, hat_scale, cloud_ctrl_x, cloud_ctrl_y, cloud_ctrl_scale, wireframe
+    global char_x, t_stomp, slash_angle, cloud_ctrl_x, cloud_ctrl_y, cloud_ctrl_scale, wireframe
     char_x = -0.05
     t_stomp = 0.35
     slash_angle = 0.0
-    hat_scale = 1.0
     cloud_ctrl_x = -0.68
     cloud_ctrl_y = 0.74
     cloud_ctrl_scale = 0.96
@@ -855,7 +742,7 @@ def reset_state():
 
 
 def key_event(_window, key, _scancode, action, _mods):
-    global char_x, t_stomp, slash_angle, hat_scale, cloud_ctrl_x, cloud_ctrl_y, cloud_ctrl_scale, wireframe
+    global char_x, t_stomp, slash_angle, cloud_ctrl_x, cloud_ctrl_y, cloud_ctrl_scale, wireframe
 
     if key == glfw.KEY_P and action == glfw.PRESS:
         wireframe = not wireframe
@@ -1199,7 +1086,7 @@ while not glfw.window_should_close(window):
     hat_anchor_x = palm_l[0] - 0.012
     hat_anchor_y = palm_l[1] + 0.160
     hat_anchor_tf = char_tf_point((hat_anchor_x, hat_anchor_y))
-    hat_scene_scale = hat_scale * char_tf_scale
+    hat_scene_scale = char_tf_scale
     hat_tilt = -0.62
 
     m_hat_brim = mt(hat_anchor_tf[0], hat_anchor_tf[1], -0.10)
@@ -1221,7 +1108,7 @@ while not glfw.window_should_close(window):
     m_hat_band = mm(m_hat_band, ms(0.043 * hat_scene_scale, 0.043 * hat_scene_scale, 0.012 * hat_scene_scale))
     draw("unit_cyl", (0.78, 0.74, 0.16, 1.0), m_hat_band)
 
-    draw_box_oriented((hat_anchor_x - 0.045, hat_anchor_y + 0.016), (0.022 * hat_scale, 0.006 * hat_scale, 0.010 * hat_scale), hat_tilt - 0.8, (0.78, 0.74, 0.16, 1.0), z=-0.085)
+    draw_box_oriented((hat_anchor_x - 0.045, hat_anchor_y + 0.016), (0.022, 0.006, 0.010), hat_tilt - 0.8, (0.78, 0.74, 0.16, 1.0), z=-0.085)
     set_char_transform(False)
 
     glfw.swap_buffers(window)
