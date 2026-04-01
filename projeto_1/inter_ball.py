@@ -4,6 +4,11 @@ import numpy as np
 import math
 import ctypes
 
+PI = 3.141592
+NUM_SECTORS = 30
+NUM_STACKS = 30
+
+
 # =========================================================
 # GLFW
 # =========================================================
@@ -12,12 +17,13 @@ if not glfw.init():
     raise RuntimeError("Falha ao inicializar GLFW")
 
 glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
-window = glfw.create_window(900, 900, "Estudo - Esfera Gremio", None, None)
+window = glfw.create_window(900, 900, "Estudo - Esfera Inter", None, None)
 if not window:
     glfw.terminate()
     raise RuntimeError("Falha ao criar janela")
 
 glfw.make_context_current(window)
+
 
 # =========================================================
 # Shaders
@@ -85,14 +91,10 @@ if not glGetProgramiv(program, GL_LINK_STATUS):
 
 glUseProgram(program)
 
-# =========================================================
-# Helpers
-# =========================================================
 
-PI = 3.141592
-NUM_SECTORS = 30
-NUM_STACKS = 30
-
+# =========================================================
+# Geometry helpers
+# =========================================================
 
 def gerar_esfera(raio, num_sectors, num_stacks):
     sector_step = (PI * 2) / num_sectors
@@ -131,22 +133,6 @@ def gerar_circulo(raio, n):
     return verts
 
 
-def gerar_estrela(r_outer, r_inner, pontas=5):
-    pts = []
-    for i in range(pontas * 2):
-        ang = i * PI / pontas - PI / 2.0
-        r = r_outer if i % 2 == 0 else r_inner
-        pts.append((math.cos(ang) * r, math.sin(ang) * r, 0.0))
-
-    verts = []
-    centro = (0.0, 0.0, 0.0)
-    for i in range(len(pts)):
-        p0 = pts[i]
-        p1 = pts[(i + 1) % len(pts)]
-        verts += [centro, p0, p1]
-    return verts
-
-
 # =========================================================
 # Object registry
 # =========================================================
@@ -161,12 +147,10 @@ def reg(nome, verts, prim="T"):
     objetos[nome] = (inicio, len(verts), prim)
 
 
-# Body
+# Inter sphere
 reg("corpo", gerar_esfera(0.28, NUM_SECTORS, NUM_STACKS), "T")
-
-# Shadow
 reg("sombra", gerar_circulo(0.20, 40), "F")
-reg("estrela", gerar_estrela(0.030, 0.013, 5), "T")
+
 
 # =========================================================
 # Upload to GPU
@@ -195,6 +179,7 @@ loc_stripe_bound_1 = glGetUniformLocation(program, "stripe_bound_1")
 loc_stripe_color_0 = glGetUniformLocation(program, "stripe_color_0")
 loc_stripe_color_1 = glGetUniformLocation(program, "stripe_color_1")
 loc_stripe_color_2 = glGetUniformLocation(program, "stripe_color_2")
+
 
 # =========================================================
 # Matrix helpers
@@ -271,8 +256,6 @@ def draw(nome, cor, mat):
 
     if prim == "T":
         glDrawArrays(GL_TRIANGLES, ini, cnt)
-    elif prim == "S":
-        glDrawArrays(GL_TRIANGLE_STRIP, ini, cnt)
     elif prim == "F":
         glDrawArrays(GL_TRIANGLE_FAN, ini, cnt)
 
@@ -295,16 +278,13 @@ rot_y = 0.0
 body_x = 0.0
 body_y = 0.02
 
-# =========================================================
-# Window
-# =========================================================
-
-glfw.show_window(window)
-glEnable(GL_DEPTH_TEST)
 
 # =========================================================
 # Main loop
 # =========================================================
+
+glfw.show_window(window)
+glEnable(GL_DEPTH_TEST)
 
 while not glfw.window_should_close(window):
     glfw.poll_events()
@@ -312,30 +292,16 @@ while not glfw.window_should_close(window):
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glClearColor(0.97, 0.97, 0.98, 1.0)
 
-    # ---------------------------------------------
-    # Shadow under sphere (fake shadow, still allowed stylistically)
-    # ---------------------------------------------
     m_shadow = mm(mt(body_x, -0.35, -0.05), ms(1.4, 0.35, 1.0))
     draw("sombra", (0.15, 0.15, 0.18, 0.35), m_shadow)
 
-    # ---------------------------------------------
-    # Main sphere body
-    # ---------------------------------------------
     m_body = mm(mt(body_x, body_y, 0.0), ry(rot_y))
-    azul = (0.00, 0.24, 0.60, 1.0)
-    preto = (0.00, 0.00, 0.00, 1.0)
+    vermelho = (0.82, 0.03, 0.08, 1.0)
     branco = (1.00, 1.00, 1.00, 1.0)
-    # Tres faixas verticais: azul, preto, branco
-    limites_gremio = [-0.28 / 3.0, 0.28 / 3.0]
-    cores_gremio = [azul, preto, branco]
-    draw_esfera_faixas_verticais("corpo", m_body, limites_gremio, cores_gremio)
-
-    # ---------------------------------------------
-    # Stars above
-    # ---------------------------------------------
-    draw("estrela", (0.60, 0.42, 0.20, 1.0), mt(body_x - 0.06, body_y + 0.36, 0.0))
-    draw("estrela", (0.75, 0.75, 0.82, 1.0), mt(body_x,         body_y + 0.39, 0.0))
-    draw("estrela", (1.00, 0.86, 0.05, 1.0), mt(body_x + 0.06, body_y + 0.36, 0.0))
+    # Duas faixas verticais: vermelho e branco
+    limites_inter = [0.0]
+    cores_inter = [vermelho, branco]
+    draw_esfera_faixas_verticais("corpo", m_body, limites_inter, cores_inter)
 
     glfw.swap_buffers(window)
 
